@@ -22,7 +22,9 @@ Replace occurrences of `foo` with `bar` and occurrences of `good` with `evil` in
 
 ```
     # iptables -A FORWARD -p tcp --destination-port 554 -j NFQUEUE --queue-num 0
-    # nfqsed -s /foo/bar -s /good/evil
+
+    # pun-netsed -s /foo/bar -s /good/evil
+    # pun-netsed -f rules.txt
 ```
 
 ## TODO

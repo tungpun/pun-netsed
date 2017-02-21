@@ -36,6 +36,7 @@ struct tcp_hdr {
 };
 
 #define MAX_RULE_LENGTH	256
+#define CASE_SENSITIVE 1
 
 #define IP_HL(ip)   (((ip)->vhl) & 0x0f)
 #define TH_OFF(th)  (((th)->off & 0xf0) >> 4)
@@ -257,7 +258,7 @@ uint8_t *find(const struct rule_t *rule, uint8_t *payload, int payload_length)
     for (i = 0 ; i < payload_length - rule_len ; i++) {
         match = 1;
         for (j = 0 ; j < rule_len ; j++) {
-           if (compare_character(payload[i+j], rule->val1[j], 1) == 0) {
+           if (compare_character(payload[i+j], rule->val1[j], CASE_SENSITIVE) == 0) {
                 match = 0;
                 break;
             }

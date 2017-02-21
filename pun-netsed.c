@@ -177,6 +177,26 @@ uint16_t tcp_sum(uint16_t len_tcp, uint16_t *src_addr, uint16_t *dest_addr, uint
     return htons((uint16_t) sum);
 }
 
+int compareCharacter(uint8_t *c1, uint8_t *c2, int case_sensitive)
+{
+    if (c1 == c2) {
+        return 1;
+    }
+    if (case_sensitive == 1) {
+        if ((65 <= c1) && (c1 <= 90)) {
+            if (c1 + 32 == c2) {
+                return 1;
+            }
+        }
+        if ((65 <= c2) && (c2 <= 90)) {
+            if (c2 + 32 == c1) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 uint8_t *find(const struct rule_t *rule, uint8_t *payload, int payload_length)
 {
     int rule_len = rule->length;
@@ -184,7 +204,7 @@ uint8_t *find(const struct rule_t *rule, uint8_t *payload, int payload_length)
     for (i = 0 ; i < payload_length - rule_len ; i++) {
         match = 1;
         for (j = 0 ; j < rule_len ; j++) {
-            if (payload[i+j] != rule->val1[j]) {
+           if (compareCharacter(payload[i+j], rule->val1[j], 1) == 0) {
                 match = 0;
                 break;
             }
@@ -225,7 +245,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     tcp = (struct tcp_hdr*)(payload + ip_size);
     tcp_size = TH_OFF(tcp)*4;
     tcp_payload = (uint8_t*)(payload + ip_size + tcp_size);
-    
+
     while (rule) {
         while ((pos = find(rule, tcp_payload, len - ip_size - tcp_size)) != NULL) {
             if (verbose) {
@@ -306,6 +326,7 @@ void read_queue()
 int main(int argc, char *argv[])
 {
     int opt;
+    printf("v1.n");
     while ((opt = getopt(argc, argv, "vs:f:q:")) != -1) {
         switch (opt) {
             case 'v':
@@ -340,4 +361,3 @@ int main(int argc, char *argv[])
     read_queue();
     return 0;
 }
-

@@ -65,16 +65,17 @@ struct rule_t {
 };
 
 struct rule_t *rules = NULL;
-int verbose = 0;
+int verbose = 1;
 int queue_num = 0;
 
 void usage()
 {
-    fprintf(stderr, "Usage: pun-netsed -s /val1/val2 [-s /val1/val2] [-f file] [-v] [-q num]\n"
+    fprintf(stderr, "Usage: pun-netsed -s /val1/val2 [-s /val1/val2] [-b /val1/val2] [-f file] [-v] [-q num]\n"
             "  -s val1/val2     - replaces occurences of val1 with val2 in the packet payload\n"
+            "  -b val1/val2     - replaces in hexa format (eg: -b /616263/646566 )\n"
             "  -f file          - read replacement rules from the specified file\n"
             "  -q num           - bind to queue with number 'num' (default 0)\n"
-            "  -v               - be verbose\n");
+            "  -v               - be quite\n");
     exit(1);
 }
 
@@ -117,6 +118,55 @@ void add_rule(const char *rule_str)
     rule->val2 = malloc(length);
     memcpy(rule->val2, pos + 1, length);
     rule->length = length;
+    rule->next = NULL;
+    if (rules) {
+        rule->next = rules;
+        rules = rule;
+    } else {
+        rules = rule;
+    }
+}
+
+void add_bin_rule(const char *rule_str)
+{
+    char delim = rule_str[0];
+    char *pos = NULL;
+    int length = 0;
+    struct rule_t *rule;
+    if (strlen(rule_str) < 4) {
+        fprintf(stderr, "rule too short: %s\n", rule_str);
+        exit(1);
+    }
+    pos = strchr(rule_str+1, delim);
+    if (!pos) {
+        fprintf(stderr, "incorrect rule: %s\n", rule_str);
+        exit(1);
+    }
+    length = strlen(pos+1);
+    if (pos - rule_str - 1 != length) {
+        fprintf(stderr, "val1 and val2 must be the same length: %s\n", rule_str);
+        exit(1);
+    }
+    rule = malloc(sizeof(struct rule_t));
+    rule->val1 = malloc(length);
+ 
+    int rule_len = strlen(rule_str);
+    char block[4];
+    int i;
+
+    for (i = 0; i < (int) (rule_len - 2) / 4; i++) {
+        memcpy(block, rule_str + 1 + i * 2, 2);    // get 2 hexa character
+        block[2] = '\0';     // end of string '65\0'
+        rule->val1[i] = strtol(block, NULL, 16);     // convert hexa format to uint_8
+    }
+    rule->val2 = malloc(length);
+ 
+    for(i = 0; i < (int) (rule_len - 2) / 4; i++) {
+        memcpy(block, rule_str + rule_len / 2 + 1 + i * 2, 2); // get 2 hexa characters
+        block[2] = '\0';     // end of string '61\0'
+        rule->val2[i] = strtol(block, NULL, 16);    // convert hexa format to uint_8
+    }
+    rule->length = (int) length / 2;
     rule->next = NULL;
     if (rules) {
         rule->next = rules;
@@ -177,7 +227,7 @@ uint16_t tcp_sum(uint16_t len_tcp, uint16_t *src_addr, uint16_t *dest_addr, uint
     return htons((uint16_t) sum);
 }
 
-int compareCharacter(uint8_t *c1, uint8_t *c2, int case_sensitive)
+int compare_character(uint8_t *c1, uint8_t *c2, int case_sensitive)
 {
     if (c1 == c2) {
         return 1;
@@ -204,7 +254,7 @@ uint8_t *find(const struct rule_t *rule, uint8_t *payload, int payload_length)
     for (i = 0 ; i < payload_length - rule_len ; i++) {
         match = 1;
         for (j = 0 ; j < rule_len ; j++) {
-           if (compareCharacter(payload[i+j], rule->val1[j], 1) == 0) {
+           if (compare_character(payload[i+j], rule->val1[j], 1) == 0) {
                 match = 0;
                 break;
             }
@@ -326,14 +376,17 @@ void read_queue()
 int main(int argc, char *argv[])
 {
     int opt;
-    printf("v1.n");
-    while ((opt = getopt(argc, argv, "vs:f:q:")) != -1) {
+    printf("Pun-NETSED\n");
+    while ((opt = getopt(argc, argv, "vs:vb:f:q:")) != -1) {
         switch (opt) {
             case 'v':
-                verbose = 1;
+                verbose = 0;
                 break;
             case 's':
                 add_rule(optarg);
+                break;
+            case 'b':
+                add_bin_rule(optarg);
                 break;
             case 'f':
                 load_rules(optarg);

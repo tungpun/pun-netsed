@@ -1,0 +1,4 @@
+s/bash/nooo
+s/<script>/dontxsss
+b/616261/646465
+s/foo/bar

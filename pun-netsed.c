@@ -1,24 +1,3 @@
-/*
-Copyright (c) 2015 Radoslav Gerganov <rgerganov@gmail.com>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -26,8 +5,10 @@ THE SOFTWARE.
 #include <netinet/in.h>
 #include <linux/types.h>
 #include <linux/netfilter.h>            /* for NF_ACCEPT */
-
 #include <libnetfilter_queue/libnetfilter_queue.h>
+#include <regex.h>
+
+regex_t regex;
 
 struct ip_hdr {
     uint8_t vhl;
@@ -53,6 +34,8 @@ struct tcp_hdr {
     uint16_t sum;
     uint16_t urp;
 };
+
+#define MAX_RULE_LENGTH	256
 
 #define IP_HL(ip)   (((ip)->vhl) & 0x0f)
 #define TH_OFF(th)  (((th)->off & 0xf0) >> 4)
@@ -114,6 +97,13 @@ void add_rule(const char *rule_str)
     }
     rule = malloc(sizeof(struct rule_t));
     rule->val1 = malloc(length);
+    int reti;
+    reti = regcomp(&regex, rule->val1, 0);
+    if (reti) {
+        printf("Could not compile regex\n");
+        exit(1);
+    }
+    reti = regexec(&regex, "abc", 0, NULL, 0);
     memcpy(rule->val1, rule_str + 1, length);
     rule->val2 = malloc(length);
     memcpy(rule->val2, pos + 1, length);
@@ -182,6 +172,8 @@ void load_rules(const char *rules_file)
     char *line = NULL;
     size_t len = 0;
     ssize_t read;
+    
+    char rule[MAX_RULE_LENGTH];
 
     f = fopen(rules_file, "r");
     if (!f) {
@@ -189,14 +181,25 @@ void load_rules(const char *rules_file)
         exit(1);
     }
     while ((read = getline(&line, &len, f)) != -1) {
-        if (line[0] == '#' || read == 1) {
+        if (read >= MAX_RULE_LENGTH) {
+            printf("Please increase MAX_RULE_LENGTH first\s");
+            exit(0);
+        }
+        memcpy(rule, line + 1, read - 2);
+        rule[read - 2] = '\0';
+        if (rule[0] == '#' || read == 1) {
             // skip comments and empty lines
             continue;
         }
-        if (line[read-1] == '\n') {
-            line[read-1] = 0;
+        if (rule[read-1] == '\n') {
+            rule[read-1] = 0;
         }
-        add_rule(line);
+        if (line[0] == 's') {
+            add_rule(rule);
+        }
+        else if (line[0] == 'b') {
+            add_bin_rule(rule);
+        }
     }
     free(line);
     fclose(f);

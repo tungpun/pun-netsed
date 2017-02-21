@@ -177,7 +177,7 @@ uint16_t tcp_sum(uint16_t len_tcp, uint16_t *src_addr, uint16_t *dest_addr, uint
     return htons((uint16_t) sum);
 }
 
-int compareCharacter(uint8_t *c1, uint8_t *c2, int case_sensitive)
+int compareCharacters(uint8_t *c1, uint8_t *c2, int case_sensitive)
 {
     if (c1 == c2) {
         return 1;
@@ -204,7 +204,7 @@ uint8_t *find(const struct rule_t *rule, uint8_t *payload, int payload_length)
     for (i = 0 ; i < payload_length - rule_len ; i++) {
         match = 1;
         for (j = 0 ; j < rule_len ; j++) {
-           if (compareCharacter(payload[i+j], rule->val1[j], 1) == 0) {
+           if (compareCharacters(payload[i+j], rule->val1[j], 1) == 0) {
                 match = 0;
                 break;
             }

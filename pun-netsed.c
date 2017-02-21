@@ -354,7 +354,7 @@ void read_queue()
     fd = nfq_fd(h);
     while ((rv = recv(fd, buf, sizeof(buf), 0)) && rv >= 0) {
         if (verbose) {
-            printf("packet received\n");
+            //printf("packet received\n");
         }
         nfq_handle_packet(h, buf, rv);
     }

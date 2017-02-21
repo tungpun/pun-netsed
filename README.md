@@ -18,7 +18,7 @@ Usage: pun-netsed -s /val1/val2 [-s /val1/val2] [-b /val1/val2] [-f file] [-v] [
 
 ## Setting Up
 
-### Forwarding TCP packet using `iptables`
+### Forwarding TCP packets using `iptables`
 
 * Transparent Proxy (`FORWARD`)
 ```
@@ -39,6 +39,10 @@ Replace occurrences of `foo` with `bar` and occurrences of `good` with `evil` in
 
 ```
     # pun-netsed -s /foo/bar -s /good/evil
+```
+
+Or working with rules file `rules.txt`
+```
     # pun-netsed -f rules.txt
 ```
 

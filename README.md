@@ -1,6 +1,6 @@
 Pun-NETSED
 
-This work based on the original `nfqsed` by @rgerganov ![https://github.com/rgerganov/nfqsed]
+This work based on the original `nfqsed` by [@rgerganov](https://github.com/rgerganov/nfqsed)
 
 `pun-netsed` is a command line utility that transparently modifies network traffic using a predefined set of substitution rules. It runs on Linux and uses the `netfilter_queue` library. It is similar to `netsed` but it also allows modifying the network traffic passing through an ethernet bridge. This is especially useful in situations where the source MAC address needs to stay unchanged. Compare with `netsed`, `pun-netsed is implemented case-sensitive filter.
 

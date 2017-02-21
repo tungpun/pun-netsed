@@ -182,7 +182,7 @@ void load_rules(const char *rules_file)
     }
     while ((read = getline(&line, &len, f)) != -1) {
         if (read >= MAX_RULE_LENGTH) {
-            printf("Please increase MAX_RULE_LENGTH first\s");
+            printf("Please increase MAX_RULE_LENGTH first\n");
             exit(0);
         }
         memcpy(rule, line + 1, read - 2);

@@ -16,13 +16,28 @@ Usage: pun-netsed -s /val1/val2 [-s /val1/val2] [-b /val1/val2] [-f file] [-v] [
   -v               - be quite
 ```
 
+## Setting Up
+
+### Forwarding TCP packet using `iptables`
+
+* Transparent Proxy (`FORWARD`)
+```
+    # iptables -A FORWARD -p tcp --destination-port 554 -j NFQUEUE --queue-num 0
+    # iptables -A FORWARD -p tcp --source-port 554 -j NFQUEUE --queue-num 0
+```
+
+* On app-server (`INPUT` and `OUTPUT`)
+```
+    # iptables -A INPUT -p tcp --destination-port 554 -j NFQUEUE --queue-num 0
+    # iptables -A OUTPUT -p tcp --source-port 554 -j NFQUEUE --queue-num 0
+```
+
+
 ## Example
 
 Replace occurrences of `foo` with `bar` and occurrences of `good` with `evil` in all forwarded packets that have destination port 554:
 
 ```
-    # iptables -A FORWARD -p tcp --destination-port 554 -j NFQUEUE --queue-num 0
-
     # pun-netsed -s /foo/bar -s /good/evil
     # pun-netsed -f rules.txt
 ```

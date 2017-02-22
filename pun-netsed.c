@@ -6,9 +6,6 @@
 #include <linux/types.h>
 #include <linux/netfilter.h>            /* for NF_ACCEPT */
 #include <libnetfilter_queue/libnetfilter_queue.h>
-#include <regex.h>
-
-regex_t regex;
 
 struct ip_hdr {
     uint8_t vhl;
@@ -98,13 +95,6 @@ void add_rule(const char *rule_str)
     }
     rule = malloc(sizeof(struct rule_t));
     rule->val1 = malloc(length);
-    int reti;
-    reti = regcomp(&regex, rule->val1, 0);
-    if (reti) {
-        printf("Could not compile regex\n");
-        exit(1);
-    }
-    reti = regexec(&regex, "abc", 0, NULL, 0);
     memcpy(rule->val1, rule_str + 1, length);
     rule->val2 = malloc(length);
     memcpy(rule->val2, pos + 1, length);
@@ -231,7 +221,7 @@ uint16_t tcp_sum(uint16_t len_tcp, uint16_t *src_addr, uint16_t *dest_addr, uint
     return htons((uint16_t) sum);
 }
 
-int compare_character(uint8_t *c1, uint8_t *c2, int case_sensitive)
+int compare_character(uint8_t c1, uint8_t c2, int case_sensitive)
 {
     if (c1 == c2) {
         return 1;

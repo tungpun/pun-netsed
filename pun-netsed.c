@@ -51,7 +51,7 @@ int queue_num = 0;
 
 void usage()
 {
-    fprintf(stderr, "Usage: pun-netsed -s /val1/val2 [-s /val1/val2] [-b /val1/val2] [-f file] [-v] [-q num]\n"
+    fprintf(stderr, "Usage: pun-netsed [-s /val1/val2] [-b /val1/val2] [-f file] [-v] [-q num]\n"
             "  -s val1/val2     - replaces occurences of val1 with val2 in the packet payload\n"
             "  -b val1/val2     - replaces in hexa format (eg: -b /616263/646566 )\n"
             "  -f file          - read replacement rules from the specified file\n"

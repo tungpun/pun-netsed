@@ -6,6 +6,9 @@
 #include <linux/types.h>
 #include <linux/netfilter.h>            /* for NF_ACCEPT */
 #include <libnetfilter_queue/libnetfilter_queue.h>
+#include <regex.h>
+
+regex_t regex;
 
 struct ip_hdr {
     uint8_t vhl;
@@ -42,7 +45,9 @@ struct rule_t {
     uint8_t *val1;
     uint8_t *val2;
     int length;
+    int length2;            // length of val2
     struct rule_t *next;
+    int type;                   // 0 for normal case, 1 for binary, 2 for regex
 };
 
 struct rule_t *rules = NULL;
@@ -63,12 +68,23 @@ void usage()
 void print_rule(const struct rule_t *rule)
 {
     int i = 0;
-    for (i = 0 ; i < rule->length ; i++) {
-        printf("%x", rule->val1[i]);
+    if (rule->type != 2) {
+        for (i = 0 ; i < rule->length ; i++) {
+            printf("%x", rule->val1[i]);
+        }
+        printf(" -> ");
+        for (i = 0 ; i < rule->length ; i++) {
+            printf("%x", rule->val2[i]);
+        }
     }
-    printf(" -> ");
-    for (i = 0 ; i < rule->length ; i++) {
-        printf("%x", rule->val2[i]);
+    else {
+        for (i = 0 ; i < rule->length ; i++) {
+            printf("%c", rule->val1[i]);
+        }
+        printf(" -> ");
+        for (i = 0 ; i < rule->length ; i++) {
+            printf("%c", rule->val2[i]);
+        }
     }
     printf("\n");
 }
@@ -99,6 +115,7 @@ void add_rule(const char *rule_str)
     rule->val2 = malloc(length);
     memcpy(rule->val2, pos + 1, length);
     rule->length = length;
+    rule->type = 0;
     rule->next = NULL;
     if (rules) {
         rule->next = rules;
@@ -148,6 +165,42 @@ void add_bin_rule(const char *rule_str)
         rule->val2[i] = strtol(block, NULL, 16);    // convert hexa format to uint_8
     }
     rule->length = (int) length / 2;
+    rule->type = 1;
+    rule->next = NULL;
+    if (rules) {
+        rule->next = rules;
+        rules = rule;
+    } else {
+        rules = rule;
+    }
+}
+
+void add_regex_rule(const char *rule_str)
+{
+    char delim = rule_str[0];
+    char *pos = NULL;
+    int length = 0;
+    int length_val2 = 0;
+    struct rule_t *rule;
+    if (strlen(rule_str) < 4) {
+        fprintf(stderr, "rule too short: %s\n", rule_str);
+        exit(1);
+    }
+    pos = strchr(rule_str+1, delim);
+    if (!pos) {
+        fprintf(stderr, "incorrect rule: %s\n", rule_str);
+        exit(1);
+    }
+    length_val2 = strlen(pos+1);
+    length = strlen(rule_str) - strlen(pos+1) - 1 - 1;
+
+    rule = malloc(sizeof(struct rule_t));
+    rule->val1 = malloc(length);
+    memcpy(rule->val1, rule_str + 1, length);
+    rule->val2 = malloc(length_val2);
+    memcpy(rule->val2, pos + 1, length_val2);
+    rule->length = length;
+    rule->type = 2;
     rule->next = NULL;
     if (rules) {
         rule->next = rules;
@@ -190,6 +243,9 @@ void load_rules(const char *rules_file)
         }
         else if (line[0] == 'b') {
             add_bin_rule(rule);
+        }
+        else if (line[0] == 'r') {
+            add_regex_rule(rule);
         }
     }
     free(line);
@@ -243,19 +299,45 @@ int compare_character(uint8_t c1, uint8_t c2, int case_sensitive)
 
 uint8_t *find(const struct rule_t *rule, uint8_t *payload, int payload_length)
 {
-    int rule_len = rule->length;
-    int i = 0, j = 0, match = 0;
-    for (i = 0 ; i < payload_length - rule_len ; i++) {
-        match = 1;
-        for (j = 0 ; j < rule_len ; j++) {
-           if (compare_character(payload[i+j], rule->val1[j], CASE_SENSITIVE) == 0) {
-                match = 0;
-                break;
+    if ((rule->type == 0) || (rule->type == 1)) {
+        int rule_len = rule->length;
+        int i = 0, j = 0, match = 0;
+        for (i = 0 ; i < payload_length - rule_len ; i++) {
+            match = 1;
+            for (j = 0 ; j < rule_len ; j++) {
+               if (compare_character(payload[i+j], rule->val1[j], CASE_SENSITIVE) == 0) {
+                    match = 0;
+                    break;
+                }
+            }
+            if (match) {
+                return payload + i;
             }
         }
-        if (match) {
-            return payload + i;
+    }
+    else if (rule->type == 2) {
+        int reti = regcomp(&regex, rule->val1, 0);
+        if (reti) {
+            printf("cannot compile regex\n");
+            exit(1);
         }
+        int pos = 0;
+        reti = regexec(&regex, payload + pos, 0, NULL, 0);
+        if (!reti) {
+            printf("Match %d\n", reti);
+            regfree(&regex);
+            return (payload + pos);
+        }
+        else if (reti == REG_NOMATCH) {
+            printf("no match\n");
+        }
+        else {
+            char err_mess[100];
+            regerror(reti, &regex, err_mess, sizeof(err_mess));
+            printf("err %s\n", err_mess);
+        }
+
+        regfree(&regex);
     }
     return NULL;
 }
@@ -296,7 +378,19 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
                 printf("rule match, changing payload: ");
                 print_rule(rule);
             }
-            memcpy(pos, rule->val2, rule->length);
+            if (rule->type == 2) {
+                /*
+                    TODO
+                    Be careful,
+                    In this part, so far, it does not work as expected.
+                    Cuz, `pos` is not an actual first position of substring, that matches regex input in `val1` . `pos` is just a first position of the string.
+                    So, when any substring, that matches regex input, is detected -> we try to flush the tcp_payload with dump data.
+                */
+                memcpy(pos, rule->val2, strlen(tcp_payload));
+            }
+            else {
+                memcpy(pos, rule->val2, rule->length);
+           }
         }
         rule = rule->next;
     }

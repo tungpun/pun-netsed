@@ -8,7 +8,7 @@ This work based on the original `nfqsed` by [@rgerganov](https://github.com/rger
 ## Usage
 
 ```
-Usage: pun-netsed -s /val1/val2 [-s /val1/val2] [-b /val1/val2] [-f file] [-v] [-q num]
+Usage: pun-netsed [-s /val1/val2] [-b /val1/val2] [-f file] [-v] [-q num]
   -s val1/val2     - replaces occurences of val1 with val2 in the packet payload
   -b val1/val2     - replaces in hexa format (eg: -b /616263/646566 )
   -f file          - read replacement rules from the specified file

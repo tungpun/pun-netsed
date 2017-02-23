@@ -386,7 +386,13 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
                     Cuz, `pos` is not an actual first position of substring, that matches regex input in `val1` . `pos` is just a first position of the string.
                     So, when any substring, that matches regex input, is detected -> we try to flush the tcp_payload with dump data.
                 */
-                memcpy(pos, rule->val2, strlen(tcp_payload));
+                char* dumpdata;
+                dumpdata = malloc(strlen(tcp_payload));
+                int i;
+                for (i = 0; i < strlen(tcp_payload); i++) {
+                    dumpdata[i] = ' ';
+                } 
+                memcpy(pos, dumpdata, strlen(tcp_payload));
             }
             else {
                 memcpy(pos, rule->val2, rule->length);

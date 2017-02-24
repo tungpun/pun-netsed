@@ -3,7 +3,7 @@ v0.1
 
 This work based on the original `nfqsed` by [@rgerganov](https://github.com/rgerganov/nfqsed)
 
-`pun-netsed` is a command line utility that transparently modifies network traffic using a predefined set of substitution rules. It runs on Linux and uses the `netfilter_queue` library. It is similar to `netsed` but it also allows modifying the network traffic passing through an ethernet bridge. This is especially useful in situations where the source MAC address needs to stay unchanged. Compared with `netsed` at the press time, `pun-netsed` is implemented case-sensitive and binary rules.
+`pun-netsed` is a command line utility that transparently modifies network traffic using a predefined set of substitution rules. It runs on Linux and uses the `netfilter_queue` library. It is similar to `netsed` but it also allows modifying the network traffic passing through an ethernet bridge. This is especially useful in situations where the source MAC address needs to stay unchanged. Compared with `netsed` at the press time, `pun-netsed` is implemented case-sensitive, binary and regex rules.
 
 ## Usage
 
@@ -22,14 +22,14 @@ Usage: pun-netsed [-s /val1/val2] [-b /val1/val2] [-f file] [-v] [-q num]
 
 * Transparent Proxy (`FORWARD`)
 ```
-    # iptables -A FORWARD -p tcp --destination-port 554 -j NFQUEUE --queue-num 0
-    # iptables -A FORWARD -p tcp --source-port 554 -j NFQUEUE --queue-num 0
+    # iptables -A FORWARD -p tcp --destination-port 2323 -j NFQUEUE --queue-num 0
+    # iptables -A FORWARD -p tcp --source-port 2323 -j NFQUEUE --queue-num 0
 ```
 
 * On app-server (`INPUT` and `OUTPUT`)
 ```
-    # iptables -A INPUT -p tcp --destination-port 554 -j NFQUEUE --queue-num 0
-    # iptables -A OUTPUT -p tcp --source-port 554 -j NFQUEUE --queue-num 0
+    # iptables -A INPUT -p tcp --destination-port 2323 -j NFQUEUE --queue-num 0
+    # iptables -A OUTPUT -p tcp --source-port 2323 -j NFQUEUE --queue-num 0
 ```
 
 

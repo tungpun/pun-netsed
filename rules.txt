@@ -4,7 +4,7 @@ s/%3cscript/
 b/616261/646565
 s/foo/bar
 s/union/uuuuu
-b/2f2a/6161
+#b/2f2a/6161
 s/%0b/%20
-r/bbbccc[[:alnum:]]/0
-r/aaavvv[[:alnum:]]/0
+r/bbbccc[[:alnum:]]/0000
+r/aaavvv[[:alnum:]]/111

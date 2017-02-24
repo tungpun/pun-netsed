@@ -37,6 +37,7 @@ struct tcp_hdr {
 
 #define MAX_RULE_LENGTH	256
 #define CASE_SENSITIVE 1
+#define DUMPBUFFER_LEN 8
 
 #define IP_HL(ip)   (((ip)->vhl) & 0x0f)
 #define TH_OFF(th)  (((th)->off & 0xf0) >> 4)
@@ -200,6 +201,7 @@ void add_regex_rule(const char *rule_str)
     rule->val2 = malloc(length_val2);
     memcpy(rule->val2, pos + 1, length_val2);
     rule->length = length;
+    rule->length2 = length_val2;
     rule->type = 2;
     rule->next = NULL;
     if (rules) {
@@ -322,21 +324,23 @@ uint8_t *find(const struct rule_t *rule, uint8_t *payload, int payload_length)
             exit(1);
         }
         int pos = 0;
-        reti = regexec(&regex, payload + pos, 0, NULL, 0);
-        if (!reti) {
-            printf("Match %d\n", reti);
-            regfree(&regex);
-            return (payload + pos);
+        for(pos = 0; pos < strlen(payload - 1); pos++) {
+            reti = regexec(&regex, payload + pos, 0, NULL, 0);
+            if (!reti) {
+                if (regexec(&regex, payload + pos + 1, 0, NULL, 0)) {
+                    regfree(&regex);
+                    return (payload + pos);
+                }
+            }
+            else if (reti == REG_NOMATCH) {
+                // printf("no match\n");
+            }
+            else {
+                char err_mess[100];
+                regerror(reti, &regex, err_mess, sizeof(err_mess));
+                printf("err %s\n", err_mess);
+            }
         }
-        else if (reti == REG_NOMATCH) {
-            printf("no match\n");
-        }
-        else {
-            char err_mess[100];
-            regerror(reti, &regex, err_mess, sizeof(err_mess));
-            printf("err %s\n", err_mess);
-        }
-
         regfree(&regex);
     }
     return NULL;
@@ -379,20 +383,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
                 print_rule(rule);
             }
             if (rule->type == 2) {
-                /*
-                    TODO
-                    Be careful,
-                    In this part, so far, it does not work as expected.
-                    Cuz, `pos` is not an actual first position of substring, that matches regex input in `val1` . `pos` is just a first position of the string.
-                    So, when any substring, that matches regex input, is detected -> we try to flush the tcp_payload with dump data.
-                */
-                char* dumpdata;
-                dumpdata = malloc(strlen(tcp_payload));
-                int i;
-                for (i = 0; i < strlen(tcp_payload); i++) {
-                    dumpdata[i] = ' ';
-                } 
-                memcpy(pos, dumpdata, strlen(tcp_payload));
+                memcpy(pos, rule->val2, rule->length2);
             }
             else {
                 memcpy(pos, rule->val2, rule->length);

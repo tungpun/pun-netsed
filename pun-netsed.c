@@ -37,7 +37,6 @@ struct tcp_hdr {
 
 #define MAX_RULE_LENGTH	256
 #define CASE_SENSITIVE 1
-#define DUMPBUFFER_LEN 8
 
 #define IP_HL(ip)   (((ip)->vhl) & 0x0f)
 #define TH_OFF(th)  (((th)->off & 0xf0) >> 4)

@@ -42,7 +42,7 @@ Replace occurrences of `foo` with `bar` and occurrences of `good` with `evil` in
     # pun-netsed -q 1 -s /bar/foo -s /evil/good
 ```
 
-Or working with rules file `rules.txt`
+Or working with rules file `rules.txt` and `rules.txt`
 ```
     # pun-netsed -q 0 -f rules.txt
     # pun-netsed -q 1 -f rules2.txt
